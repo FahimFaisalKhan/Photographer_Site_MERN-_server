@@ -83,7 +83,39 @@ app.post("/reviews", async (req, res) => {
 
 app.patch("/reviews", async (req, res) => {
   const { editedReview, revId } = req.body;
-  console.log(editedReview, revId);
+  let response;
+  try {
+    const table = client.db("reviewSite-db").collection("reviews");
+
+    const filter = { _id: ObjectId(revId) };
+    const updateDoc = {
+      $set: {
+        review: editedReview,
+      },
+    };
+
+    response = await table.updateOne(filter, updateDoc);
+  } catch (err) {
+    response = { message: err.message };
+  } finally {
+    res.send(response);
+  }
+});
+
+app.delete("/deleteReview", async (req, res) => {
+  let response;
+  const { revToDelId } = req.body;
+  console.log(revToDelId);
+  try {
+    const table = client.db("reviewSite-db").collection("reviews");
+    const query = { _id: ObjectId(revToDelId) };
+
+    response = await table.deleteOne(query);
+  } catch (err) {
+    response = { message: err.message };
+  } finally {
+    res.send(response);
+  }
 });
 
 app.get("/reviews", async (req, res) => {
