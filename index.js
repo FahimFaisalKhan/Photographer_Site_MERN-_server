@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import * as dotenv from "dotenv";
-import { MongoClient, ServerApiVersion } from "mongodb";
+import { MongoClient, ObjectId, ServerApiVersion } from "mongodb";
 const app = express();
 const port = process.env.PORT || 5000;
 dotenv.config();
@@ -34,20 +34,38 @@ app.get("/services", async (req, res) => {
       ? await table
           .find()
           .limit(+limit)
+          .sort({ index: 1 })
           .toArray()
       : perPageItem && currentPage
       ? await table
           .find()
           .skip(currentPage * perPageItem)
           .limit(+perPageItem)
+          .sort({ index: 1 })
           .toArray()
-      : await table.find().toArray();
+      : await table.find().sort({ index: 1 }).toArray();
 
     count = await table.countDocuments();
   } catch (err) {
     response = { message: err.message };
   } finally {
     res.send({ response, count });
+  }
+});
+
+app.get("/services/:id", async (req, res) => {
+  console.log(req.params.id);
+  const idToFind = req.params.id;
+  let response;
+  try {
+    const table = client.db("reviewSite-db").collection("services");
+    const query = { _id: ObjectId(idToFind) };
+    response = await table.findOne(query);
+  } catch (err) {
+    response = { message: err.message };
+  } finally {
+    console.log(response);
+    res.send(response);
   }
 });
 
