@@ -26,7 +26,6 @@ app.get("/services", async (req, res) => {
 
   const perPageItem = req.query.perPageItem;
   const currentPage = req.query.currentPage;
-  console.log(perPageItem, currentPage);
 
   try {
     const table = client.db("reviewSite-db").collection("services");
@@ -54,7 +53,6 @@ app.get("/services", async (req, res) => {
 });
 
 app.get("/services/:id", async (req, res) => {
-  console.log(req.params.id);
   const idToFind = req.params.id;
   let response;
   try {
@@ -64,7 +62,42 @@ app.get("/services/:id", async (req, res) => {
   } catch (err) {
     response = { message: err.message };
   } finally {
-    console.log(response);
+    res.send(response);
+  }
+});
+
+app.post("/reviews", async (req, res) => {
+  const { name, review, image, serviceId, email, serviceName } = req.body;
+  const doc = { name, review, image, serviceId, email, serviceName };
+  let response;
+  try {
+    const table = client.db("reviewSite-db").collection("reviews");
+
+    response = await table.insertOne(doc);
+  } catch (err) {
+    response = { message: err.message };
+  } finally {
+    res.send(response);
+  }
+});
+
+app.patch("/reviews", async (req, res) => {
+  const { editedReview, revId } = req.body;
+  console.log(editedReview, revId);
+});
+
+app.get("/reviews", async (req, res) => {
+  const { serviceId, email } = req.query;
+  console.log(serviceId, email);
+  const query = serviceId ? { serviceId: serviceId } : { email: email };
+  let response;
+  try {
+    const table = client.db("reviewSite-db").collection("reviews");
+
+    response = await table.find(query).toArray();
+  } catch (err) {
+    response = { message: err.message };
+  } finally {
     res.send(response);
   }
 });
