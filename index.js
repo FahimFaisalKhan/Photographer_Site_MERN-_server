@@ -1,7 +1,9 @@
-import express, { response } from "express";
+import express from "express";
 import cors from "cors";
 import * as dotenv from "dotenv";
 import { MongoClient, ObjectId, ServerApiVersion } from "mongodb";
+import jwt from "jsonwebtoken";
+import { verifyJWT } from "./utils.js";
 const app = express();
 const port = process.env.PORT || 5000;
 dotenv.config();
@@ -18,6 +20,12 @@ const client = new MongoClient(uri, {
 
 app.get("/", (req, res) => {
   res.send("server running");
+});
+
+app.post("/jwt", (req, res) => {
+  const token = jwt.sign({ email: req.body.email }, process.env.SECRET);
+
+  res.send({ token });
 });
 app.get("/services", async (req, res) => {
   let response;
@@ -105,9 +113,11 @@ app.post("/services", async (req, res) => {
   }
 });
 
-app.post("/reviews", async (req, res) => {
+app.post("/reviews", verifyJWT, async (req, res) => {
   const { name, review, image, serviceId, email, serviceName } = req.body;
   const doc = { name, review, image, serviceId, email, serviceName };
+  doc.createdAt = new Date(Date.now());
+  console.log(doc);
   let response;
   try {
     const table = client.db("reviewSite-db").collection("reviews");
@@ -120,7 +130,8 @@ app.post("/reviews", async (req, res) => {
   }
 });
 
-app.patch("/reviews", async (req, res) => {
+app.patch("/reviews", verifyJWT, async (req, res) => {
+  console.log(req.decoded);
   const { editedReview, revId } = req.body;
   let response;
   try {
@@ -130,6 +141,7 @@ app.patch("/reviews", async (req, res) => {
     const updateDoc = {
       $set: {
         review: editedReview,
+        createdAt: new Date(Date.now()),
       },
     };
 
@@ -141,10 +153,11 @@ app.patch("/reviews", async (req, res) => {
   }
 });
 
-app.delete("/deleteReview", async (req, res) => {
+app.delete("/deleteReview", verifyJWT, async (req, res) => {
+  console.log(req.decoded);
   let response;
   const { revToDelId } = req.body;
-  console.log(revToDelId);
+
   try {
     const table = client.db("reviewSite-db").collection("reviews");
     const query = { _id: ObjectId(revToDelId) };
@@ -157,19 +170,22 @@ app.delete("/deleteReview", async (req, res) => {
   }
 });
 
-app.get("/reviews", async (req, res) => {
+app.get("/reviews", verifyJWT, async (req, res) => {
   const { serviceId, email } = req.query;
-  console.log(serviceId, email);
-  const query = serviceId ? { serviceId: serviceId } : { email: email };
-  let response;
-  try {
-    const table = client.db("reviewSite-db").collection("reviews");
+  if (req.decoded.email !== email) {
+    res.status(403).send({ message: "unauthorized" });
+  } else {
+    const query = serviceId ? { serviceId: serviceId } : { email: email };
+    let response;
+    try {
+      const table = client.db("reviewSite-db").collection("reviews");
 
-    response = await table.find(query).toArray();
-  } catch (err) {
-    response = { message: err.message };
-  } finally {
-    res.send(response);
+      response = await table.find(query).sort({ createdAt: -1 }).toArray();
+    } catch (err) {
+      response = { message: err.message };
+    } finally {
+      res.send(response);
+    }
   }
 });
 
