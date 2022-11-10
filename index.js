@@ -1,4 +1,4 @@
-import express from "express";
+import express, { response } from "express";
 import cors from "cors";
 import * as dotenv from "dotenv";
 import { MongoClient, ObjectId, ServerApiVersion } from "mongodb";
@@ -59,6 +59,45 @@ app.get("/services/:id", async (req, res) => {
     const table = client.db("reviewSite-db").collection("services");
     const query = { _id: ObjectId(idToFind) };
     response = await table.findOne(query);
+  } catch (err) {
+    response = { message: err.message };
+  } finally {
+    res.send(response);
+  }
+});
+
+app.post("/services", async (req, res) => {
+  const {
+    name,
+    description,
+
+    picture,
+    ap1,
+    ap2,
+    price,
+    reating,
+  } = req.body;
+
+  let response;
+  try {
+    const table = client.db("reviewSite-db").collection("services");
+    const doc = {
+      name,
+      description,
+
+      picture,
+    };
+    doc["service-description"] = req.body["service-description"];
+    doc.price = +price;
+    doc.reating = +reating;
+    doc["additional-pictures"] = [];
+    if (ap1) {
+      doc["additional-pictures"].push(ap1);
+    }
+    if (ap2) {
+      doc["additional-pictures"].push(ap2);
+    }
+    response = await table.insertOne(doc);
   } catch (err) {
     response = { message: err.message };
   } finally {
