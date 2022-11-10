@@ -5,6 +5,10 @@
     {
       "src": "./images/*",
       "use": "@vercel/static"
+    },
+    {
+      "src": "./images/**/*",
+      "use": "@vercel/static"
     }
   ],
   "routes": [{ "handle": "filesystem" }, { "src": "/(.*)", "dest": "/" }]
