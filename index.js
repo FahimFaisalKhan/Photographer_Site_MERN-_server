@@ -117,7 +117,7 @@ app.post("/reviews", verifyJWT, async (req, res) => {
   const { name, review, image, serviceId, email, serviceName } = req.body;
   const doc = { name, review, image, serviceId, email, serviceName };
   doc.createdAt = new Date(Date.now());
-  console.log(doc);
+
   let response;
   try {
     const table = client.db("reviewSite-db").collection("reviews");
@@ -131,7 +131,6 @@ app.post("/reviews", verifyJWT, async (req, res) => {
 });
 
 app.patch("/reviews", verifyJWT, async (req, res) => {
-  console.log(req.decoded);
   const { editedReview, revId } = req.body;
   let response;
   try {
@@ -154,7 +153,6 @@ app.patch("/reviews", verifyJWT, async (req, res) => {
 });
 
 app.delete("/deleteReview", verifyJWT, async (req, res) => {
-  console.log(req.decoded);
   let response;
   const { revToDelId } = req.body;
 
