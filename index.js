@@ -186,6 +186,22 @@ app.get("/reviews", verifyJWT, async (req, res) => {
     }
   }
 });
+app.get("/getReviews", async (req, res) => {
+  const { serviceId } = req.query;
+
+  const query = { serviceId: serviceId };
+  let response;
+  try {
+    const table = client.db("reviewSite-db").collection("reviews");
+
+    response = await table.find(query).sort({ createdAt: -1 }).toArray();
+  } catch (err) {
+    response = { message: err.message };
+  } finally {
+    res.send(response);
+  }
+});
+
 app.get("/first3reviews", async (req, res) => {
   let response;
   try {
