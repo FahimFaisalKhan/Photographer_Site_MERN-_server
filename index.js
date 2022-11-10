@@ -1,4 +1,4 @@
-import express from "express";
+import express, { query } from "express";
 import cors from "cors";
 import * as dotenv from "dotenv";
 import { MongoClient, ObjectId, ServerApiVersion } from "mongodb";
@@ -186,5 +186,16 @@ app.get("/reviews", verifyJWT, async (req, res) => {
     }
   }
 });
+app.get("/first3reviews", async (req, res) => {
+  let response;
+  try {
+    const table = client.db("reviewSite-db").collection("reviews");
 
+    response = await table.find().limit(3).toArray();
+  } catch (err) {
+    response = { message: err.message };
+  } finally {
+    res.send(response);
+  }
+});
 app.listen(port, () => console.log(`app running on port ${port}`));
