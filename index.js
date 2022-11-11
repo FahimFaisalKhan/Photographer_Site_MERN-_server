@@ -52,7 +52,7 @@ app.get("/services", async (req, res) => {
       : perPageItem && currentPage
       ? await table
           .find(query)
-          .skip(currentPage * perPageItem)
+          .skip(parseInt(currentPage) * parseInt(perPageItem))
           .limit(+perPageItem)
           .sort({ index: 1 })
           .toArray()
