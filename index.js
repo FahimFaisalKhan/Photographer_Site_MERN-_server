@@ -34,6 +34,12 @@ app.get("/services", async (req, res) => {
 
   const perPageItem = req.query.perPageItem;
   const currentPage = req.query.currentPage;
+  const search = req.query.search;
+  let query = {};
+
+  if (search) {
+    query = { name: { $regex: req.query.search } };
+  }
 
   try {
     const table = client.db("reviewSite-db").collection("services");
@@ -45,14 +51,14 @@ app.get("/services", async (req, res) => {
           .toArray()
       : perPageItem && currentPage
       ? await table
-          .find()
+          .find(query)
           .skip(currentPage * perPageItem)
           .limit(+perPageItem)
           .sort({ index: 1 })
           .toArray()
       : await table.find().sort({ index: 1 }).toArray();
 
-    count = await table.countDocuments();
+    count = await table.countDocuments(query);
   } catch (err) {
     response = { message: err.message };
   } finally {
@@ -206,8 +212,15 @@ app.get("/first3reviews", async (req, res) => {
   let response;
   try {
     const table = client.db("reviewSite-db").collection("reviews");
+    const arr = await table.distinct("name");
 
-    response = await table.find().limit(3).toArray();
+    const rs = [];
+    for (let i of arr.slice(0, 3)) {
+      const r = await table.findOne({ name: i });
+      rs.push(r);
+    }
+
+    response = rs;
   } catch (err) {
     response = { message: err.message };
   } finally {
