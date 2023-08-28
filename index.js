@@ -4,6 +4,7 @@ import * as dotenv from "dotenv";
 import { MongoClient, ObjectId, ServerApiVersion } from "mongodb";
 import jwt from "jsonwebtoken";
 import { verifyJWT } from "./utils.js";
+import Stripe from "stripe";
 const app = express();
 const port = process.env.PORT || 5000;
 dotenv.config();
@@ -16,6 +17,72 @@ const client = new MongoClient(uri, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
   serverApi: ServerApiVersion.v1,
+});
+
+//STRIPE
+
+const stripe = new Stripe(
+  "sk_test_51M6B8WJadxoSok6rrk4UgBHTeA4efuB6IeZpjqogumqAXtAuRMOh6bXSoMqsqB49azRy3gSJxWPP0myOqT21SC2200a1fhFKzu"
+);
+app.post("/create-payment-intent", async (req, res) => {
+  // Create a PaymentIntent with the order amount and currency
+  const { amount } = req.body;
+  const paymentIntent = await stripe.paymentIntents.create({
+    amount: +amount * 100,
+    currency: "usd",
+    automatic_payment_methods: {
+      enabled: true,
+    },
+  });
+
+  res.send({
+    clientSecret: paymentIntent.client_secret,
+  });
+});
+app.post("/create-paypal-order", async (req, res) => {
+  console.log("reached here");
+  const orderRes = await fetch(
+    "https://api-m.sandbox.paypal.com/v2/checkout/orders",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+
+        Authorization:
+          "Bearer A21AAL_YapBvYP0VtZiyf2LhDKvSHJHMMyNqvFFmJdveoKQdibKGG4-moKhcuixne2HloY1d2fP9ox4SFHQ1Cmgz1WQnmz5ug",
+      },
+      body: JSON.stringify({
+        intent: "CAPTURE",
+        purchase_units: [
+          {
+            reference_id: "d9f80740-38f0-11e8-b467-0ed5f89f718g",
+            amount: { currency_code: "USD", value: "100.00" },
+          },
+        ],
+      }),
+    }
+  );
+  const orderData = await orderRes.json();
+
+  res.send(orderData);
+});
+app.post("/capture-paypal-order", async (req, res) => {
+  const { orderID } = req.body;
+  const captureRes = await fetch(
+    `https://api-m.sandbox.paypal.com/v2/checkout/orders/${orderID}/capture`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+
+        Authorization:
+          "Bearer A21AAL_YapBvYP0VtZiyf2LhDKvSHJHMMyNqvFFmJdveoKQdibKGG4-moKhcuixne2HloY1d2fP9ox4SFHQ1Cmgz1WQnmz5ug",
+      },
+    }
+  );
+  const captureData = await captureRes.json();
+
+  res.send({ completed: true });
 });
 
 app.get("/", (req, res) => {
@@ -38,17 +105,13 @@ app.get("/services", async (req, res) => {
   let query = {};
 
   if (search) {
-    query = { name: { $regex: req.query.search } };
+    query = { name: { $regex: new RegExp(req.query.search, "i") } };
   }
 
   try {
     const table = client.db("reviewSite-db").collection("services");
     response = limit
-      ? await table
-          .find()
-          .limit(+limit)
-          .sort({ index: 1 })
-          .toArray()
+      ? await table.find().limit(+limit).sort({ index: 1 }).toArray()
       : perPageItem && currentPage
       ? await table
           .find(query)
